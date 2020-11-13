@@ -9,8 +9,10 @@ import os.path
 from os import path
 import sqlite3
 import schedule
+import sys
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
+from dhooks import Webhook
 
 opt = Options()
 opt.add_argument("--disable-infobars")
@@ -24,7 +26,9 @@ opt.add_experimental_option("prefs", { \
 		"profile.default_content_setting_values.notifications": 1 
 	})
 
-URL = "YOUR MOODLE URL ( ENDED WITH /MY )"
+discord_webhook = Webhook('YOUR_DISCORD_WEBHOOK')
+
+URL = "YOUR_MOODLE_URL_(_ENDED_WITH_/MY_)"
 
 CREDS = {'username' : 'YOUR_MOODLE_USERNAME','passwd':'YOUR_MOODLE_PASSWORD'}
 
@@ -34,33 +38,42 @@ def start_browser():
 
 def login():
 	global driver
-	usernameField = driver.find_element_by_xpath('//*[@id="username"]')
-	passwordField = driver.find_element_by_xpath('//*[@id="password"]')
-	loginBtn = driver.find_element_by_xpath('//*[@id="loginbtn"]')
-	usernameField.click()
-	usernameField.send_keys(CREDS['username'])
-	print('[+] Masuk ke halaman login')
-	passwordField.click()
-	passwordField.send_keys(CREDS['passwd'])
-	loginBtn.click()
-	print('[+] Berhasil login')
+	try:
+		usernameField = driver.find_element_by_xpath('//*[@id="username"]')
+		passwordField = driver.find_element_by_xpath('//*[@id="password"]')
+		loginBtn = driver.find_element_by_xpath('//*[@id="loginbtn"]')
+		usernameField.click()
+		usernameField.send_keys(CREDS['username'])
+		print('[+] Masuk ke halaman login')
+		passwordField.click()
+		passwordField.send_keys(CREDS['passwd'])
+		loginBtn.click()
+		print('[+] Berhasil login')
+	except:
+		print('[X] Gagal Login')
+		sys.exit()
 
-def masukKelas(link_kelas):
+def masukKelas(link_kelas, nameKelas):
 	global driver
-	if("course" in link_kelas):
-		driver.get(link_kelas)
-		driver.find_element_by_xpath('//li[@class="section main clearfix current"]/div[3]/ul/li[@class="activity attendance modtype_attendance "]/div/div/div[2]/div/a').click()
-	else:
-		driver.get(link_kelas)
-	attendance = driver.find_element_by_xpath('//a[contains(text(),"Submit attendance")]')
-	attendance.click()
-	print('[+] Mengklik tombol submit attendence')
-	present = driver.find_element_by_xpath('//span[contains(text(),"Present") and @class="statusdesc"]')
-	present.click()
-	print('[+] Mengklik tombol present')
-	submit = driver.find_element_by_xpath('//*[@id="id_submitbutton"]')
-	submit.click()
-	print('[+] Mengklik tombol submit')
+	try:
+		if("course" in link_kelas):
+			driver.get(link_kelas)
+			driver.find_element_by_xpath('//li[@class="section main clearfix current"]/div[3]/ul/li[@class="activity attendance modtype_attendance "]/div/div/div[2]/div/a').click()
+		else:
+			driver.get(link_kelas)
+		attendance = driver.find_element_by_xpath('//a[contains(text(),"Submit attendance")]')
+		attendance.click()
+		print('[+] Mengklik tombol submit attendence')
+		present = driver.find_element_by_xpath('//span[contains(text(),"Present") and @class="statusdesc"]')
+		present.click()
+		print('[+] Mengklik tombol present')
+		submit = driver.find_element_by_xpath('//*[@id="id_submitbutton"]')
+		submit.click()
+		print('[+] Mengklik tombol submit')
+		discord_webhook.send("Berhasil absen untuk kelas %s"%(nameKelas))
+	except:
+		print('[X] Absen gagal')
+		discord_webhook.send("Absen untuk kelas %s gagal, silahkan cek secara manual"%(nameKelas))
 
 def validate_input(regex,inp):
 	if not re.match(regex,inp):
@@ -131,6 +144,7 @@ def startBot():
 	time.sleep(1)
 
 def sched():
+	discord_webhook.send('Bot mulai berjalan')
 	conn = sqlite3.connect('timetable.db')
 	c=conn.cursor()
 	for row in c.execute('SELECT * FROM timetable'):
@@ -141,25 +155,25 @@ def sched():
 		start_time = row[4]
 
 		if day.lower()=="senin":
-			schedule.every().monday.at(start_time).do(masukKelas,links)
+			schedule.every().monday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' hari %s jam %s"%(name,day,start_time))
 		if day.lower()=="selasa":
-			schedule.every().tuesday.at(start_time).do(masukKelas,links)
+			schedule.every().tuesday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 		if day.lower()=="rabu":
-			schedule.every().wednesday.at(start_time).do(masukKelas,links)
+			schedule.every().wednesday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 		if day.lower()=="kamis":
-			schedule.every().thursday.at(start_time).do(masukKelas,links)
+			schedule.every().thursday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 		if day.lower()=="jumat":
-			schedule.every().friday.at(start_time).do(masukKelas,links)
+			schedule.every().friday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 		if day.lower()=="sabtu":
-			schedule.every().saturday.at(start_time).do(masukKelas,links)
+			schedule.every().saturday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 		if day.lower()=="minggu":
-			schedule.every().sunday.at(start_time).do(masukKelas,links)
+			schedule.every().sunday.at(start_time).do(masukKelas,links,name)
 			print("[-] Database berhasil di import untuk kelas '%s' on %s at %s"%(name,day,start_time))
 
 	#Start browser
