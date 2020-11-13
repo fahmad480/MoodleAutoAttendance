@@ -32,7 +32,9 @@ pip install -r requirements.txt
 - Change your Moodle URL, username and password in ```CREDS``` variabel inside ```attendance.py```
 
 ```python
-URL = "YOUR MOODLE URL ( ENDED WITH /MY )"
+discord_webhook = Webhook('YOUR_DISCORD_WEBHOOK')
+
+URL = "YOUR_MOODLE_URL_(_ENDED_WITH_/MY_)"
 
 CREDS = {'username' : 'YOUR_MOODLE_USERNAME','passwd':'YOUR_MOODLE_PASSWORD'}
 ```
