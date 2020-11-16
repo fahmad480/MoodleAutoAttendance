@@ -55,6 +55,7 @@ def login():
 
 def masukKelas(link_kelas, nameKelas):
 	global driver
+	checkItIsLogin()
 	try:
 		if("course" in link_kelas):
 			driver.get(link_kelas)
@@ -142,6 +143,11 @@ def startBot():
 	if("elearning.itenas.ac.id/login/index.php" in driver.current_url):
 		login()
 	time.sleep(1)
+
+def checkItIsLogin():
+	driver.get(URL)
+	if("elearning.itenas.ac.id/login/index.php" in driver.current_url):
+		login()
 
 def sched():
 	discord_webhook.send('Bot mulai berjalan')
